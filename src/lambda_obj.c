@@ -99,14 +99,17 @@ void calculate_pairwise_delta_ndcg(double* y, double* f, int size, double** res)
 
     double* dcg_arr = (double*)malloc(size* sizeof(double));
     double* log_arr = (double*)malloc(size* sizeof(double));
+    double* rel_arr = (double*)malloc(size* sizeof(double));
     double dcg_sum = 0;
     for (int i = 0; i < size; ++i) {
         log_arr[i] = log(2.0 + i);
-        dcg_arr[i] = (pow2((int)y[f_sorted_idxs[i]]) - 1)/log_arr[i];
+        rel_arr[i] = (pow2((int)y[f_sorted_idxs[i]]) - 1);
+        dcg_arr[i] = rel_arr[i]/log_arr[i];
+
         dcg_sum += dcg_arr[i];
     }
 
-    //double dcg_1 = calculate_dcg_by_idxs(y, f_sorted_idxs, size);
+//    double dcg_1 = calculate_dcg_by_idxs(y, f_sorted_idxs, size);
     double ndcg_1 = divide_double(dcg_sum, ideal_dcg);
 
 
@@ -127,15 +130,24 @@ void calculate_pairwise_delta_ndcg(double* y, double* f, int size, double** res)
 
 
             // swap i dobument with j document in sorting by F and recompute ndcg
-//            double dcg_2 = dcg_sum;
-//            double rel_d1 = dcg_arr[d1_sorted_idx] * log_arr[d1_sorted_idx];
-//            double rel_d2 = dcg_arr[d1_sorted_idx] * log_arr[d2_sorted_idx];
-//
-//            dcg_2 = dcg_2 - dcg_arr[d1_sorted_idx] - dcg_arr[d2_sorted_idx];
-//
-//            dcg_2 += rel_d1/log_arr[d1_sorted_idx] + rel_d2/log_arr[d2_sorted_idx];
-//            double ndcg_2 = divide_double(dcg_2, ideal_dcg);
-//            res[i][j] = ndcg_1 - ndcg_2;
+            double NEW_dcg_2 = dcg_sum;
+            double rel_d1 = rel_arr[d1_sorted_idx];//dcg_arr[d1_sorted_idx] * log_arr[d1_sorted_idx];
+            double rel_d2 = rel_arr[d2_sorted_idx];//dcg_arr[d1_sorted_idx] * log_arr[d2_sorted_idx];
+
+            dcg_2 = dcg_2 - dcg_arr[d1_sorted_idx] - dcg_arr[d2_sorted_idx];
+
+            dcg_2 += rel_d1/log_arr[d1_sorted_idx] + rel_d2/log_arr[d2_sorted_idx];
+            double NEW_ndcg_2 =0;
+            NEW_ndcg_2 = divide_double(dcg_2, ideal_dcg);
+
+            if(fabs(NEW_ndcg_2 - ndcg_2) > 1e-10)
+            {
+                printf("TRUE: %lf\n",ndcg_2);
+                printf("NEW: %lf\n",NEW_ndcg_2);
+            }
+            //res[i][j] = ndcg_1 - ndcg_2;
+            //res[i][j] = ndcg_1 - ndcg_2;
+
         }
     }
 
@@ -144,6 +156,7 @@ void calculate_pairwise_delta_ndcg(double* y, double* f, int size, double** res)
     free(inv_f_idxs);
     free(dcg_arr);
     free(log_arr);
+    free(rel_arr);
 }
 
 
@@ -408,23 +421,23 @@ void test_arr_func()
     print_array_int(sorted_idxs, size);
 }
 
-//int main() {
+int main() {
+
+    //test_arr_func();
+    test_lambda();
+
+//    double* y = (double*)malloc(4*sizeof(double));
+//    for (int i = 0; i < 5; ++i) {
+//        y[i] = i;
+//    }
 //
-//    //test_arr_func();
-//    //test_lambda();
+//    double ndcg_res = calculate_ndcg(y,y,5);
 //
-////    double* y = (double*)malloc(4*sizeof(double));
-////    for (int i = 0; i < 5; ++i) {
-////        y[i] = i;
-////    }
-////
-////    double ndcg_res = calculate_ndcg(y,y,5);
-////
-////    printf("NDCG: %f\n", ndcg_res);
-////
-////    struct GradPair p;
-////    p.grad = y;
-////    p.hess = y;
+//    printf("NDCG: %f\n", ndcg_res);
 //
-//    //printf("aaa");
-//}
+//    struct GradPair p;
+//    p.grad = y;
+//    p.hess = y;
+
+    //printf("aaa");
+}

@@ -34,7 +34,7 @@ def train_val_split(X_data, y_data, qid_data, group_sizes, test_size=0.2):
 
     return X_train, y_train, qid_train, group_train, X_val, y_val, qid_val, group_val
 
-X_data, y_data, qid_data, group_sizes = load_data(data_folder +'train_small.txt')
+X_data, y_data, qid_data, group_sizes = load_data(data_folder +'train.txt')
 X_train, y_train, qid_train, group_train, \
 X_val, y_val, qid_val, group_val = train_val_split(X_data, y_data, qid_data, group_sizes, test_size = 0.2)
 
@@ -61,9 +61,9 @@ def mspe(F:np.array, dtrain:  xgb.DMatrix):
     # exit(0)
     #
     # return None, None
-    #t1 = time()
+    t1 = time()
     grad, hess = lambda_objective(Y, F, 1.0, group_train)
-    # print("grad_time(sec): ", time()-t1)
+    print("grad_time(sec): ", time()-t1)
 
     return grad, hess
 
@@ -73,10 +73,18 @@ print("START TRAIN:")
 params = {'objective': 'rank:pairwise', 'eta': 0.1, 'gamma': 1.0,
                'min_child_weight': 0.1, 'max_depth': 6, 'eval_metric': 'ndcg@5'}
 
-# print("ORIGINAL OBJ: ")
-# xgb_model = xgb.train(params, dtrain, num_boost_round=2, evals=[(dtrain, 'validation')],
-#                      obj= mspe, verbose_eval=True)
+
 
 print("MY OBJECTIVE")
-xgb_model = xgb.train(params, dtrain, num_boost_round=2, evals=[(dtrain, 'validation')],
-                     verbose_eval=True)
+xgb_model = xgb.train(params, dtrain, num_boost_round=1000, evals=[(dtrain, 'train'), (dval, 'val')],
+obj= mspe, verbose_eval=True)
+
+
+
+print("ORIGINAL OBJ: ")
+
+params_reg = {'objective': 'reg:linear', 'eta': 0.1, 'gamma': 1.0,
+               'min_child_weight': 0.1, 'max_depth': 6, 'eval_metric': 'ndcg@5'}
+reg_xgb_model = xgb.train(params_reg, dtrain, num_boost_round=400, evals=[(dtrain, 'validation'), (dval, 'val')],
+                      verbose_eval=True)
+
