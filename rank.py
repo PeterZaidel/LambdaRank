@@ -3,6 +3,7 @@ from sklearn.datasets import load_svmlight_file
 import numpy as np
 import src.lambda_obj_py
 from src.lambda_obj_py import lambda_objective
+from time import time
 
 data_folder = '../../Data/hw3/'
 
@@ -33,7 +34,7 @@ def train_val_split(X_data, y_data, qid_data, group_sizes, test_size=0.2):
 
     return X_train, y_train, qid_train, group_train, X_val, y_val, qid_val, group_val
 
-X_data, y_data, qid_data, group_sizes = load_data(data_folder +'train.txt')
+X_data, y_data, qid_data, group_sizes = load_data(data_folder +'train_small.txt')
 X_train, y_train, qid_train, group_train, \
 X_val, y_val, qid_val, group_val = train_val_split(X_data, y_data, qid_data, group_sizes, test_size = 0.2)
 
@@ -51,17 +52,31 @@ def save_arr(arr, filename):
 
 def mspe(F:np.array, dtrain:  xgb.DMatrix):
     Y = dtrain.get_label()
+
+    # print("SAVING_ARRAYS:")
     # save_arr(F, 'src/F_test.txt')
     # save_arr(Y, 'src/Y_test.txt')
     # save_arr(group_train, 'src/group_test.txt')
+    # print("ARRAYS SAVED")
     # exit(0)
-
+    #
+    # return None, None
+    #t1 = time()
     grad, hess = lambda_objective(Y, F, 1.0, group_train)
+    # print("grad_time(sec): ", time()-t1)
+
     return grad, hess
 
+
+print("START TRAIN:")
 
 params = {'objective': 'rank:pairwise', 'eta': 0.1, 'gamma': 1.0,
                'min_child_weight': 0.1, 'max_depth': 6, 'eval_metric': 'ndcg@5'}
 
-xgb_model = xgb.train(params, dtrain, num_boost_round=100, evals=[(dtrain, 'validation')],
-                     obj= mspe, verbose_eval=True)
+# print("ORIGINAL OBJ: ")
+# xgb_model = xgb.train(params, dtrain, num_boost_round=2, evals=[(dtrain, 'validation')],
+#                      obj= mspe, verbose_eval=True)
+
+print("MY OBJECTIVE")
+xgb_model = xgb.train(params, dtrain, num_boost_round=2, evals=[(dtrain, 'validation')],
+                     verbose_eval=True)

@@ -65,10 +65,20 @@ double pow2(int d)
     return (double)(1<<d);
 }
 
-double double_cmp(const double *x1, const double *x2)
+static int double_cmp_up(const void * a, const void * b)
 {
-    return *x1 - *x2;
+    if (*(double*)a > *(double*)b) return -1;
+    else if (*(double*)a < *(double*)b) return 1;
+    else return 0;
 }
+
+static int double_cmp_down(const void * a, const void * b)
+{
+    if (*(double*)a > *(double*)b) return 1;
+    else if (*(double*)a < *(double*)b) return -1;
+    else return 0;
+}
+
 
 
 struct __val_idx_struct
@@ -77,12 +87,21 @@ struct __val_idx_struct
     int index;
 };
 
-int __val_idx_cmp(const void *a, const void *b)
+int __val_idx_cmp_up(const void *a, const void *b)
 {
     struct __val_idx_struct *a1 = (struct __val_idx_struct *)a;
     struct __val_idx_struct *a2 = (struct __val_idx_struct*)b;
     if((*a1).value>(*a2).value)return -1;
     else if((*a1).value < (*a2).value)return 1;
+    else return 0;
+}
+
+int __val_idx_cmp_down(const void *a, const void *b)
+{
+    struct __val_idx_struct *a1 = (struct __val_idx_struct *)a;
+    struct __val_idx_struct *a2 = (struct __val_idx_struct*)b;
+    if((*a1).value>(*a2).value)return 1;
+    else if((*a1).value < (*a2).value)return -1;
     else return 0;
 }
 
@@ -96,7 +115,7 @@ int* argsort(double* arr, int size)
     }
 
     //sort objects array according to value maybe using qsort
-    qsort(objects, size, sizeof(objects[0]), __val_idx_cmp);
+    qsort(objects, size, sizeof(objects[0]), __val_idx_cmp_up);
 
     int* sort_idxs = (int*)malloc(size* sizeof(int));
     for (int i = 0; i < size; ++i) {
@@ -108,6 +127,14 @@ int* argsort(double* arr, int size)
 }
 
 
+void sort_arr(double* arr, int size)
+{
+    printf("SORT:\n");
+    print_array(arr, size);
+    qsort(arr, size, sizeof(double), double_cmp_up);
+}
+
+
 double* get_by_idx(double* arr, int* idxs, int size)
 {
     double* res = (double*)malloc(size * sizeof(double));
@@ -115,6 +142,20 @@ double* get_by_idx(double* arr, int* idxs, int size)
         res[i] = arr[idxs[i]];
     }
     return res;
+}
+
+void swap_arr_int(int* y, int i, int j)
+{
+    int buf = y[i];
+    y[i] = y[j];
+    y[j] = buf;
+}
+
+void swap_arr_double(double* y, int i, int j)
+{
+    double buf = y[i];
+    y[i] = y[j];
+    y[j] = buf;
 }
 
 
