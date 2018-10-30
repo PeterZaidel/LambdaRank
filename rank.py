@@ -7,6 +7,18 @@ from time import time
 
 data_folder = '../../Data/hw3/'
 
+
+# def save_predict(qids, pred, filename):
+#     fout = open(filename, 'w')
+#     uniq_qids = np.unique(qids)
+#     for qid in uniq_qids:
+#         q_idxs = np.argwhere(qids == qid).ravel()
+#         q_preds = pred[q_idxs]
+#         doc
+#
+#
+#     fout.close()
+
 def load_data(path):
     X_data, y_data, qid_data = load_svmlight_file(path, query_id=True)
     sorted_by_qid_idxs = np.argsort(qid_data)
@@ -70,21 +82,20 @@ def mspe(F:np.array, dtrain:  xgb.DMatrix):
 
 print("START TRAIN:")
 
-params = {'objective': 'rank:pairwise', 'eta': 0.1, 'gamma': 1.0,
-               'min_child_weight': 0.1, 'max_depth': 6, 'eval_metric': 'ndcg@5'}
+params = {'objective': 'rank:pairwise', 'eta': 0.2,  'max_depth': 8, 'eval_metric': 'ndcg@5'}
 
 
 
 print("MY OBJECTIVE")
 xgb_model = xgb.train(params, dtrain, num_boost_round=1000, evals=[(dtrain, 'train'), (dval, 'val')],
-obj= mspe, verbose_eval=True)
+                        #obj= mspe,
+                        verbose_eval=True)
 
 
 
-print("ORIGINAL OBJ: ")
+print("XGBOOST MSE: ")
 
-params_reg = {'objective': 'reg:linear', 'eta': 0.1, 'gamma': 1.0,
-               'min_child_weight': 0.1, 'max_depth': 6, 'eval_metric': 'ndcg@5'}
-reg_xgb_model = xgb.train(params_reg, dtrain, num_boost_round=400, evals=[(dtrain, 'validation'), (dval, 'val')],
+params_reg = {'objective': 'reg:linear', 'eta': 0.1, 'max_depth': 6, 'eval_metric': 'ndcg@5'}
+reg_xgb_model = xgb.train(params_reg, dtrain, num_boost_round=400, evals=[(dtrain, 'train'), (dval, 'val')],
                       verbose_eval=True)
 
