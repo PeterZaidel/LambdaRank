@@ -6,6 +6,8 @@ from numpy.ctypeslib import ndpointer
 # libc = ctypes.cdll["src/lambda_obj.so"]
 #print("laoded")
 
+print("VERSION: 1.1")
+
 lib = ctypes.cdll["src/lambda_obj.so"]
 LambdaRankObjective_c = lib['LambdaRankObjective']
 LambdaRankObjective_c.argtypes = [ctypes.POINTER(ctypes.c_double),
@@ -19,6 +21,7 @@ LambdaRankObjective_c.argtypes = [ctypes.POINTER(ctypes.c_double),
 
 
 def lambda_objective(Y, F, sigma, group):
+    #print("AAA")
     Y = Y.astype(np.float64)
     F = F.astype(np.float64)
 
@@ -43,5 +46,8 @@ def lambda_objective(Y, F, sigma, group):
     #print("PYTHON")
     #print("PYTHON_GRAD: ", grad)
     #print("PYTHON_HESS: ", hess)
+
+    print("GRAD_NORM: ", np.linalg.norm(grad))
+    print("HESS_NORM: ", np.linalg.norm(hess))
 
     return grad, hess

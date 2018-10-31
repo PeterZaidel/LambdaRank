@@ -9,6 +9,17 @@
 #include <stdlib.h>
 #include <math.h>
 
+
+void print_matrix(double** mat, int W, int H)
+{
+    for (int i = 0; i < W; ++i) {
+        for (int j = 0; j < H; ++j) {
+            printf("%lf, ", mat[i][j]);
+        }
+        printf("\n");
+    }
+}
+
 void print_array(double* arr, int size)
 {
     for (int i = 0; i < size; ++i) {
@@ -55,7 +66,14 @@ void sign_matrix(double **mat, int W, int H)
 }
 
 
-double sigm(double x)
+double sign(double x)
+{
+    if(x == 0) return 0;
+    if(x < 0) return -1;
+    return 1;
+}
+
+double sigmoid(double x)
 {
     return 1.0 / (1.0 + exp(x));
 }
@@ -91,8 +109,8 @@ int __val_idx_cmp_up(const void *a, const void *b)
 {
     struct __val_idx_struct *a1 = (struct __val_idx_struct *)a;
     struct __val_idx_struct *a2 = (struct __val_idx_struct*)b;
-    if((*a1).value>(*a2).value)return -1;
-    else if((*a1).value < (*a2).value)return 1;
+    if((*a1).value>(*a2).value) return -1;
+    else if((*a1).value < (*a2).value) return 1;
     else return 0;
 }
 

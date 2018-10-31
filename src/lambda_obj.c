@@ -10,7 +10,7 @@ double calculate_dcg(double *y, int size)
     double dcg = 0.0;
     for(int i =0; i< size; ++i)
     {
-        dcg += (pow2((int)y[i]) - 1)/log(2.0 + i);
+        dcg += (pow2((int)y[i]) - 1)/log2(2.0 + i);
     }
     return dcg;
 }
@@ -20,13 +20,18 @@ double calculate_dcg_by_idxs(double *y, int* idxs, int size)
     double dcg = 0.0;
     for(int i =0; i< size; ++i)
     {
-        dcg += (pow2((int)y[idxs[i]]) - 1)/log(2.0 + i);
+        dcg += (pow2((int)y[idxs[i]]) - 1)/log2(2.0 + i);
     }
     return dcg;
 }
 
 double divide_double(double numerator, double denominator)
 {
+    if(denominator == 0.0)
+    {
+        return numerator;
+    }
+
     if(numerator == 0) return 0.0;
     else
     {
@@ -102,7 +107,7 @@ void calculate_pairwise_delta_ndcg(double* y, double* f, int size, double** res)
     double* rel_arr = (double*)malloc(size* sizeof(double));
     double dcg_sum = 0;
     for (int i = 0; i < size; ++i) {
-        log_arr[i] = log(2.0 + i);
+        log_arr[i] = log2(2.0 + i);
         rel_arr[i] = (pow2((int)y[f_sorted_idxs[i]]) - 1);
         dcg_arr[i] = rel_arr[i]/log_arr[i];
 
@@ -144,7 +149,7 @@ void calculate_pairwise_delta_ndcg(double* y, double* f, int size, double** res)
 //                printf("--\nTRUE: %lf\n",dcg_2);
 //                printf("NEW: %lf\n--\n",fast_dcg_2);
 //            }
-            res[i][j] = ndcg_1 - fast_ndcg_2;
+            res[i][j] = fabs(ndcg_1 - fast_ndcg_2);
 
         }
     }
@@ -184,6 +189,10 @@ extern void LambdaRankObjective(double* Y,
 //    double _time_delta_max = 0.0;
 //    int _time_delta_counter = 0;
 
+    double cur_ndcg = 0;
+
+    double  LimitDelta = 50.0;
+
 
     int group_start = 0;
     int group_len =  0;
@@ -197,35 +206,43 @@ extern void LambdaRankObjective(double* Y,
             max_group_len = group[i];
     }
 
-    double** pairwise_s = (double**)malloc(max_group_len*sizeof(double*));
-    double** pairwise_f = (double**)malloc(max_group_len*sizeof(double*));
+//    double** pairwise_s = (double**)malloc(max_group_len*sizeof(double*));
+//    double** pairwise_f = (double**)malloc(max_group_len*sizeof(double*));
     double** pairwise_delta_ndcg = (double**)malloc(max_group_len*sizeof(double*));
     for (int i = 0; i < max_group_len; ++i) {
-        pairwise_s[i] = (double*)malloc(max_group_len*sizeof(double));
-        pairwise_f[i] = (double*)malloc(max_group_len*sizeof(double));
+//        pairwise_s[i] = (double*)malloc(max_group_len*sizeof(double));
+//        pairwise_f[i] = (double*)malloc(max_group_len*sizeof(double));
         pairwise_delta_ndcg[i] = (double*)malloc(max_group_len*sizeof(double));
     }
 
+
+
     for (int group_i = 0; group_i < group_size; group_i++)
     {
-
         group_start += group_len;
         group_len = group[group_i];
+        //printf("group_len: %d \n", group_len );
 
         double* group_Y = Y + group_start;
         double* group_F = F + group_start;
 
-        pairwise_diff(group_Y, group_len, pairwise_s);
-        sign_matrix(pairwise_s, group_len, group_len);
-
-        pairwise_diff(group_F, group_len, pairwise_f);
+//        pairwise_diff(group_Y, group_len, pairwise_s);
+//        sign_matrix(pairwise_s, group_len, group_len);
+//
+//        pairwise_diff(group_F, group_len, pairwise_f);
 
         //TEST PROFILING TIME
 //        clock_t t;
 //        t = clock();
 
+        cur_ndcg += calculate_ndcg(group_Y, group_F, group_len);
+
 
         calculate_pairwise_delta_ndcg(group_Y, group_F, group_len, pairwise_delta_ndcg);
+//        printf("----\n");
+//        printf("DELTA_NDCG: \n");
+//        print_matrix(pairwise_delta_ndcg, group_len, group_len);
+//        printf("----\n");
 
         // TEST PROFILING TIME
 //        t = clock() - t;
@@ -241,11 +258,33 @@ extern void LambdaRankObjective(double* Y,
             double cur_hess = 0;
 
             for (int j = 0; j < group_len; ++j) {
+
+//                if(group_Y[i] <= group_Y[j])
+//                    continue;
+
+                double pair_fij = group_F[i] - group_F[j];
+                double pair_sij = sign(group_Y[i] - group_Y[j]);
+
+
                 //double _delta_ndcg = delta_ndcg(group_Y, group_F,  i, j, group_len);
-                double delta_ndcg = pairwise_delta_ndcg[i][j];
-                double pij = sigm( sigma * fabs(pairwise_f[i][j]) );
-                cur_grad += pairwise_s[i][j] *(-sigma * delta_ndcg * pij);
-                cur_hess += fabs(pairwise_s[i][j]) * sigma * sigma * delta_ndcg * pij * (1.0 - pij);
+                double delta_ndcg = fabs(pairwise_delta_ndcg[i][j]);
+//                double score_delta = sigma * pair_fij;
+//                score_delta = fmin(sigma * pair_fij,LimitDelta/sigma );
+
+                //double pij = sigmoid( sigma * fabs(pairwise_f[i][j]) );
+                double pij = sigmoid(  fabs(group_F[i] - group_F[j]   ));
+                cur_grad += pair_sij * ( -1.0 *  delta_ndcg * pij);
+//
+
+//                printf("i:{%d} j: {%d}  grad = %lf \n", i, j, pair_sij *(-1.0 * sigma * delta_ndcg * pij));
+//                printf("i:{%d} j: {%d}  grad_sign = %lf \n", i, j, pair_sij);
+//                printf("i:{%d} j: {%d}  grad_delta = %lf \n", i, j, delta_ndcg);
+//                printf("i:{%d} j: {%d}  grad_Fij = %lf \n", i, j, fabs(group_F[i] - group_F[j]));
+
+//                const double eps = 1e-16;
+//                double  h = fmax(pij * (1.0 - pij), 0.0);
+
+                cur_hess += fabs(pair_sij) *  delta_ndcg * pij * (1.0 - pij);
             }
 
 //            if(cur_grad == 0)
@@ -254,12 +293,28 @@ extern void LambdaRankObjective(double* Y,
 //                count_grad_nonzero++;
 
             grad[group_start + i] = cur_grad;
-            hess[group_start + i] = cur_hess;
+
+            //printf("di=%d  grad_i = %lf, hess_i= %lf\n", group_start + i, cur_grad, cur_hess);
+
+            //hess[group_start + i] = cur_hess;
+
+            if(cur_hess == 0) {
+                hess[group_start + i] = 1.0;
+//                printf("hess=0\n");
+            }
+            else {
+                hess[group_start + i] = cur_hess;
+            }
         }
     }
-    free_mat(pairwise_s, max_group_len);
-    free_mat(pairwise_f, max_group_len);
+//    free_mat(pairwise_s, max_group_len);
+//    free_mat(pairwise_f, max_group_len);
     free_mat(pairwise_delta_ndcg, max_group_len);
+
+
+    cur_ndcg = cur_ndcg/ group_size;
+
+    printf("NDCG: %lf\n", cur_ndcg);
 
     //TEST PROFILING TIME
 //
@@ -381,6 +436,26 @@ void test_lambda()
 }
 
 
+void test_lambda_2()
+{
+    int size = 3;
+    double F[] = {0.5, 2,  0};
+    double  Y[] = {5,   2, 0};
+    int group[] = {size};
+
+    double* grad = (double*)malloc(size*sizeof(double));
+    double* hess = (double*)malloc(size*sizeof(double));
+
+    LambdaRankObjective(Y, F, 1.0, size, group, 1, grad, hess);
+    printf("GRAD:\n");
+    print_array(grad, size);
+
+    printf("HESS:\n");
+    print_array(hess, size);
+
+
+}
+
 void test_arr_func()
 {
     int size = 4;
@@ -419,23 +494,23 @@ void test_arr_func()
     print_array_int(sorted_idxs, size);
 }
 
-int main() {
-
-    //test_arr_func();
-    test_lambda();
-
-//    double* y = (double*)malloc(4*sizeof(double));
-//    for (int i = 0; i < 5; ++i) {
-//        y[i] = i;
-//    }
+//int main() {
 //
-//    double ndcg_res = calculate_ndcg(y,y,5);
+//    //test_arr_func();
+//    test_lambda_2();
 //
-//    printf("NDCG: %f\n", ndcg_res);
+////    double* y = (double*)malloc(4*sizeof(double));
+////    for (int i = 0; i < 5; ++i) {
+////        y[i] = i;
+////    }
+////
+////    double ndcg_res = calculate_ndcg(y,y,5);
+////
+////    printf("NDCG: %f\n", ndcg_res);
+////
+////    struct GradPair p;
+////    p.grad = y;
+////    p.hess = y;
 //
-//    struct GradPair p;
-//    p.grad = y;
-//    p.hess = y;
-
-    //printf("aaa");
-}
+//    //printf("aaa");
+//}
