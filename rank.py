@@ -148,17 +148,18 @@ def mspe(F: np.array, dtrain: xgb.DMatrix):
 
 # print("START TRAIN:")
 #'objective': 'rank:pairwise',
-model_name = 'hess-1-500-8-eta-0.3-xxxx'
+model_name = 'doob_hess-1-500-8-eta-0.3-xxxx'
 
-params = {'objective': 'rank:pairwise', 'eta': 0.3, 'max_depth': 8, 'eval_metric': 'ndcg@5',
+params = {'objective': 'rank:pairwise', 'eta': 0.1, 'max_depth': 8, 'eval_metric': 'ndcg@5',
           'nthread': 16}
 
 print("MY OBJECTIVE")
 evres = dict()
-xgb_model = xgb.train(params, dtrain, num_boost_round=1500, evals=[(dtrain, 'train')],
+xgb_model = xgb.train(params, dtrain, num_boost_round=500, evals=[(dtrain, 'train')],
                       obj=mspe,
                       evals_result=evres,
-                      verbose_eval=True)
+                      verbose_eval=True,
+                      xgb_model='hess-1-500-8-eta-0.3-xxxx.xgb')
 
 # print("XGBOOST MSE: ")
 
@@ -176,7 +177,7 @@ xgb_model.save_model(model_name+'.xgb')
 prediction_test = xgb_model.predict(dtest)
 save_submission(qid_test, prediction_test, model_name + '_submission.txt')
 
-np.save(model_name + 'test_pred.np', prediction_test)
+np.save(model_name + '_test_pred.np', prediction_test)
 #
 # my_submission_test = get_submission(qid_test, prediction_test)
 # fen_submission = load_submission('fen_submission.txt')
