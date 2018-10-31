@@ -94,7 +94,7 @@ void calculate_pairwise_delta_ndcg(double* y, double* f, int size, double** res)
 
     double ideal_dcg = calculate_dcg_by_idxs(y, y_sorted_idxs, size);
 
-    int ndcg_at_5_size = (int)fmin(5, size);
+    //int ndcg_at_5_size = (int)fmin(5, size);
 
 
     double* dcg_arr = (double*)malloc(size* sizeof(double));
@@ -118,35 +118,33 @@ void calculate_pairwise_delta_ndcg(double* y, double* f, int size, double** res)
 
             int d1_sorted_idx = inv_f_idxs[i];
             int d2_sorted_idx = inv_f_idxs[j];
-
-            swap_arr_int(f_sorted_idxs, d1_sorted_idx, d2_sorted_idx);
-
-            double dcg_2 = calculate_dcg_by_idxs(y, f_sorted_idxs, ndcg_at_5_size);
-            double ndcg_2 = divide_double(dcg_2, ideal_dcg);
-
-            res[i][j] = ndcg_1 - ndcg_2;
-
-            swap_arr_int(f_sorted_idxs, d2_sorted_idx, d1_sorted_idx);
+//
+//            swap_arr_int(f_sorted_idxs, d1_sorted_idx, d2_sorted_idx);
+//
+//            double dcg_2 = calculate_dcg_by_idxs(y, f_sorted_idxs, size);
+//            double ndcg_2 = divide_double(dcg_2, ideal_dcg);
+//
+//            res[i][j] = ndcg_1 - ndcg_2;
+//
+//            swap_arr_int(f_sorted_idxs, d2_sorted_idx, d1_sorted_idx);
 
 
             // swap i dobument with j document in sorting by F and recompute ndcg
-//            double NEW_dcg_2 = dcg_sum;
-//            double rel_d1 = rel_arr[d1_sorted_idx];//dcg_arr[d1_sorted_idx] * log_arr[d1_sorted_idx];
-//            double rel_d2 = rel_arr[d2_sorted_idx];//dcg_arr[d1_sorted_idx] * log_arr[d2_sorted_idx];
-//
-//            dcg_2 = dcg_2 - dcg_arr[d1_sorted_idx] - dcg_arr[d2_sorted_idx];
-//
-//            dcg_2 += rel_d1/log_arr[d1_sorted_idx] + rel_d2/log_arr[d2_sorted_idx];
-//            double NEW_ndcg_2 =0;
-//            NEW_ndcg_2 = divide_double(dcg_2, ideal_dcg);
-//
-//            if(fabs(NEW_ndcg_2 - ndcg_2) > 1e-10)
+            double rel_d1 = rel_arr[d1_sorted_idx];//dcg_arr[d1_sorted_idx] * log_arr[d1_sorted_idx];
+            double rel_d2 = rel_arr[d2_sorted_idx];//dcg_arr[d1_sorted_idx] * log_arr[d2_sorted_idx];
+
+            double fast_dcg_2 = dcg_sum - dcg_arr[d1_sorted_idx] - dcg_arr[d2_sorted_idx];
+
+            fast_dcg_2 += rel_d1/log_arr[d2_sorted_idx] + rel_d2/log_arr[d1_sorted_idx];
+            double fast_ndcg_2 = 0;
+            fast_ndcg_2 = divide_double(fast_dcg_2, ideal_dcg);
+
+//            if(fabs(fast_dcg_2 - dcg_2) > 1e-10)
 //            {
-//                printf("TRUE: %lf\n",ndcg_2);
-//                printf("NEW: %lf\n",NEW_ndcg_2);
+//                printf("--\nTRUE: %lf\n",dcg_2);
+//                printf("NEW: %lf\n--\n",fast_dcg_2);
 //            }
-            //res[i][j] = ndcg_1 - ndcg_2;
-            //res[i][j] = ndcg_1 - ndcg_2;
+            res[i][j] = ndcg_1 - fast_ndcg_2;
 
         }
     }
